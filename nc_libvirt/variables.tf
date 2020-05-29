@@ -4,7 +4,7 @@ variable "ansible_playbook_path" {
 }
 variable "global_ssh_public_key" {
   type = string
-  default = "ssh-rsa AAAAB3NzaC1yc2EA"
+  default = "ssh-rsa AAAAB3NzaC1yc2EA..."
 }
 variable "global_net" {
   type = string

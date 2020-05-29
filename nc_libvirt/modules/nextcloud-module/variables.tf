@@ -10,10 +10,6 @@ variable "tld" {
 }
 variable "net" {
 }
-variable "ansible_grp" {
-  type = string
-  default = "lan_nc"
-}
 variable "user" {
   type = string
   default = "matt"

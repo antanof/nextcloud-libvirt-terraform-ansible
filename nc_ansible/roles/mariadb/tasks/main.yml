@@ -58,7 +58,7 @@
     flat: yes
     dest: "/tmp/my.cnf.{{ ansible_hostname }}"
   when: mysql_new_root_pass.changed
-### replication master slave
+
 - name: Create replicator mysql user
   mysql_user:
     name: "replicator"
@@ -68,8 +68,6 @@
     state: present
     login_unix_socket: "/var/lib/mysql/mysql.sock"
   notify: restart_mariadb
-
-### end replication
 
 - name: Initialize nextcloud database
   include_role:

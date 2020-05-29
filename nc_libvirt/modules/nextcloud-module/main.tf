@@ -1,6 +1,3 @@
-#############################
-## fetch the latest fedora release image from their mirrors
-#############################
 locals {
   servers = {
     for s in range(var.server_count) : "${var.server_name}-${var.machine_name}-${s}" => {
