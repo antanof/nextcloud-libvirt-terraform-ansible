@@ -1,0 +1,82 @@
+---
+- name: Install MariaDB packages
+  dnf:
+    name: ['mariadb', 'mariadb-server', 'python3-PyMySQL']
+    state: latest
+
+- name: Configure MariaDB
+  template:
+    src: my.cnf.j2
+    dest: /etc/my.cnf
+  notify: restart_mariadb
+
+- name: Start MariaDB Service
+  service:
+    name: mariadb
+    state: started
+    enabled: yes
+
+- name: Generate new root password
+  command: openssl rand -hex 7 creates=/root/.my.cnf
+  register: mysql_new_root_pass
+
+- name: Secure MariaDB -- remove anonymous user
+  mysql_user:
+    name: ''
+    host_all: yes
+    state: absent
+    login_unix_socket: "/var/lib/mysql/mysql.sock"
+  when: mysql_new_root_pass.changed
+
+- name: Secure MariaDB -- remove test db
+  mysql_db:
+    name: test
+    state: absent
+    login_unix_socket: "/var/lib/mysql/mysql.sock"
+  when: mysql_new_root_pass.changed
+
+- name: Output new root password
+  debug:
+   msg: "New root password is {{ mysql_new_root_pass.stdout }}"
+  when: mysql_new_root_pass.changed
+
+- name: Update root password
+  mysql_user:
+    name: root
+    host_all: yes
+    password: "{{ mysql_new_root_pass.stdout }}"
+    login_unix_socket: "/var/lib/mysql/mysql.sock"
+  when: mysql_new_root_pass.changed
+
+- name: Create my.cnf
+  template: src=mycnf.j2 dest=/root/.my.cnf
+  when: mysql_new_root_pass.changed
+
+- name: my.cnf local copy
+  fetch:
+    src: /root/.my.cnf
+    flat: yes
+    dest: "/tmp/my.cnf.{{ ansible_hostname }}"
+  when: mysql_new_root_pass.changed
+### replication master slave
+- name: Create replicator mysql user
+  mysql_user:
+    name: "replicator"
+    password: "{{ nextcloud_db_password }}"
+    priv: "*.*:REPLICATION SLAVE"
+    host: "%"
+    state: present
+    login_unix_socket: "/var/lib/mysql/mysql.sock"
+  notify: restart_mariadb
+
+### end replication
+
+- name: Initialize nextcloud database
+  include_role:
+    name: nextcloud
+    tasks_from: nextcloud_mariadb
+
+- name: Cluster Mariadb master/slave configuration
+  include: mariadb_cluster.yml
+  when: db_master_cluster | bool
+...

@@ -1,0 +1,63 @@
+---
+- name: Check mariadb cluster config
+  stat: path=/var/log/mariadb/ansible.repl
+  register: check_sql_path
+  tags: getmaster
+
+- name: Get mariadb master informations
+  mysql_replication:
+    mode: getmaster
+  register: getmaster
+  delegate_to: "{{ hostvars[groups['lan_db'][0]]['ansible_host'] }}"
+  tags: getmaster
+
+- name: Initialize slave db on master db position
+  mysql_replication:
+    mode: changemaster
+    master_host: "{{ hostvars[groups['lan_db'][0]]['ansible_host'] }}"
+    master_user: replicator
+    master_password: "{{ nextcloud_db_password }}"
+    master_log_file: "{{ getmaster.File }}"
+    master_log_pos: "{{ getmaster.Position }}"
+  delegate_to: "{{ hostvars[groups['lan_db'][1]]['ansible_host'] }}"
+  when: check_sql_path.stat.exists == false
+  notify: restart_mariadb
+
+- name: Start MySQL slave process
+  mysql_replication:
+    mode: startslave
+  when: check_sql_path.stat.exists == false
+  notify: restart_mariadb
+
+- name: Get slave state
+  mysql_replication:
+    mode: getslave
+    login_host: "{{ hostvars[groups['lan_db'][1]]['ansible_host'] }}"
+    login_unix_socket: "/var/lib/mysql/mysql.sock"
+  register: getslave
+  delegate_to: "{{ hostvars[groups['lan_db'][1]]['ansible_host'] }}"
+  when: check_sql_path.stat.exists == false
+  tags: getmaster
+
+- name: Create flag
+  command: touch /var/log/mariadb/ansible.repl
+  when: check_sql_path.stat.exists == false and inventory_hostname == groups.lan_db[1]
+
+- command: touch /var/log/mariadb/ansible.repl
+  when: check_sql_path.stat.exists == false and inventory_hostname == groups.lan_db[0]
+
+- debug:
+    msg: "{{ getmaster }}"
+  tags: getmaster
+
+- name: slave
+  debug:
+    msg: "{{ getslave }}"
+  when: check_sql_path.stat.exists == false
+  tags: getmaster
+#Vérifiez que la réplication fonctionne avec la commande SHOW SLAVE STATUS :
+#SHOW SLAVE STATUS \G
+#Si elle fonctionne, les valeurs Slave_IO_Running et Slave_SQL_Running doivent être:
+#Slave_IO_Running: Yes
+#Slave_SQL_Running: Yes
+...

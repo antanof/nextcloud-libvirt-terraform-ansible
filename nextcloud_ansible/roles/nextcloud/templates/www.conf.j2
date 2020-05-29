@@ -1,0 +1,28 @@
+[www]
+user = {{ webserver.user | default(apache) }}
+group = {{ webserver.user | default(apache) }}
+listen = {{ webserver.php_socket }}
+listen.acl_users = apache,nginx
+;listen.owner = nginx
+;listen.group = nginx
+;listen.mode = 0660
+{% if webserver.name == "httpd" %}
+listen.allowed_clients = 127.0.0.1
+{% endif %}
+pm = dynamic
+pm.max_children = 240
+pm.start_servers = 20
+pm.min_spare_servers = 10
+pm.max_spare_servers = 20
+pm.max_requests = 500
+slowlog = /var/log/php-fpm/www-slow.log
+php_admin_value[error_log] = /var/log/php-fpm/www-error.log
+php_admin_flag[log_errors] = on
+php_value[session.save_handler] = files
+php_value[session.save_path]    = /var/lib/php/session
+php_value[soap.wsdl_cache_dir]  = /var/lib/php/wsdlcache
+env[HOSTNAME] = $HOSTNAME
+env[PATH] = /usr/local/bin:/usr/bin:/bin
+env[TMP] = /tmp
+env[TMPDIR] = /tmp
+env[TEMP] = /tmp

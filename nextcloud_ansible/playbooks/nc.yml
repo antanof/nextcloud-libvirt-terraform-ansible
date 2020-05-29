@@ -1,0 +1,19 @@
+---
+- name: Install Nextcloud
+  hosts: lan_nc
+  become: true
+  vars:
+    list_open_services: ["http", "https"]
+    openssl_dhparam:
+    webserver:
+      name: "nginx" # httpd
+      user: "nginx" # apache
+      php_socket: "/run/php-fpm/php-fpm.sock"
+    #      php_socket: "/run/php-fpm/www.sock"
+  roles:
+    - role: "{{ webserver.name | default(httpd) }}"
+      tags: "{{ webserver.name | default(httpd) }}"
+    - role: firewalld
+    - role: php
+    - role: nextcloud
+...

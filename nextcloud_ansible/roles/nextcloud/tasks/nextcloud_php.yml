@@ -1,0 +1,28 @@
+---
+- name: Change PHP conf
+  template:
+    src: php.ini.j2
+    dest: /etc/php.ini
+    owner: root
+    group: root
+    mode: '0644'
+  notify: php_restart
+
+- name: Change PHP opcache conf
+  template:
+    src: 10-opcache.ini.j2
+    dest: /etc/php.d/10-opcache.ini
+    owner: root
+    group: root
+    mode: '0644'
+  notify: php_restart
+
+- name: Change PHP www.conf
+  template:
+    src: www.conf.j2
+    dest: /etc/php-fpm.d/www.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: php_restart
+...

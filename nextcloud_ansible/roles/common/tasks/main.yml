@@ -1,0 +1,20 @@
+---
+- name: add epel repo
+  yum_repository:
+    name: epel
+    description: Extra Packages for Enterprise Linux 7 - $basearch
+    mirrorlist: https://mirrors.fedoraproject.org/metalink?repo=epel-7&arch=$basearch
+    gpgkey: https://getfedora.org/static/352C64E5.txt
+    enabled: yes
+  notify: yum-clean-metadata
+
+- name: Install tools
+  dnf:
+    name: ['unzip', 'wget', 'bzip2', 'certbot', 'cronie', 'sysfsutils', 'setroubleshoot', 'mariadb']
+    state: latest
+
+- name: Enable and start crond.service
+  service:
+    name: crond.service
+    state: started
+    enabled: yes

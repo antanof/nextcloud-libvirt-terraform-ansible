@@ -1,0 +1,26 @@
+---
+- hosts: all
+  become: yes
+  gather_facts: yes
+  tasks:
+    - name: Load variables
+      include_vars:
+        dir: ../roles/nextcloud/vars
+        name: main
+        extensions: [yml]
+
+- hosts: all
+  become: yes
+  gather_facts: yes
+  roles:
+    - role: common
+
+- name: Include Redis play
+  import_playbook: rd.yml
+
+- name: Include Mariadb play
+  import_playbook: db.yml
+
+- name: Include Nextcloud play
+  import_playbook: nc.yml
+...

@@ -1,0 +1,10 @@
+---
+- name: Install Redis Server
+  hosts: lan_rd
+  become: true
+  vars:
+    list_open_ports: ["6379", "16379"]
+  roles:
+    - role: redis
+    - role: firewalld
+...

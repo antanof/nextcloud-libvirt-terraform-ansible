@@ -1,0 +1,51 @@
+<VirtualHost *:80>
+  ServerName {{ ansible_fqdn }}
+  ServerAdmin admin@{{ ansible_fqdn }}
+  DocumentRoot /var/www/html/nextcloud
+  RewriteEngine On
+  RewriteCond %{SERVER_NAME} ={{ ansible_fqdn }}
+  RewriteRule ^ https://%{SERVER_NAME}%{REQUEST_URI} [END,NE,R=permanent]
+</VirtualHost>
+
+<IfModule mod_ssl.c>
+   <VirtualHost *:443>
+     SSLEngine on
+     SSLOptions +StrictRequire
+     LogFormat "%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-agent}i\"" vhost_combined
+     LogFormat "%v %h %l %u %t \"%r\" %>s %b" vhost_common
+     ServerName {{ ansible_fqdn }}
+     ServerAdmin admin@{{ ansible_fqdn }}
+     DocumentRoot /var/www/html/nextcloud
+     SSLCertificateFile /etc/{{ ansible_fqdn }}/ssl/{{ ansible_fqdn }}.crt
+     SSLCertificateKeyFile /etc/{{ ansible_fqdn }}/ssl/{{ ansible_fqdn }}.key
+     <Directory /var/www/html/nextcloud/>
+     Options +FollowSymlinks
+     AllowOverride All
+     <IfModule mod_dav.c>
+     Dav off
+     </IfModule>
+     SetEnv HOME /var/www/html/nextcloud
+     SetEnv HTTP_HOME /var/www/html/nextcloud
+     </Directory>
+     <IfModule mod_headers.c>
+     Header always set Strict-Transport-Security "max-age=15768000; preload"
+     #Header set Referrer-Policy "strict-origin-when-cross-origin"
+     #Header set X-Content-Type-Options "nosniff"
+     #Header always set X-Frame-Options "SAMEORIGIN"
+     </IfModule>
+     </VirtualHost>
+     SSLProtocol -all +TLSv1.3 +TLSv1.2
+     SSLCipherSuite TLS-CHACHA20-POLY1305-SHA256:TLS-AES-256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA512:DHE-RSA-AES256-GCM-SHA512:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES256-GCM-SHA384
+     SSLHonorCipherOrder on
+     SSLCompression off
+     SSLSessionTickets off
+     SSLUseStapling on
+     SSLStaplingResponderTimeout 5
+     SSLStaplingReturnResponderErrors off
+     SSLStaplingCache shmcb:/var/run/ocsp(128000)
+     SSLOpenSSLConfCmd Curves X448:secp521r1:secp384r1:prime256v1
+     SSLOpenSSLConfCmd ECDHParameters secp384r1
+     SSLOpenSSLConfCmd DHParameters "/etc/{{ ansible_fqdn }}/ssl/dhparams.pem"
+     SSLRandomSeed startup file:/dev/urandom 1024
+     SSLRandomSeed connect file:/dev/urandom 1024
+</IfModule>

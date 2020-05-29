@@ -1,0 +1,4 @@
+db_master_cluster: true
+nextcloud_db: "nextcloud"
+nextcloud_db_password: "passd234"
+nextcloud_db_user: "ncuser"

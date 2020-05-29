@@ -1,0 +1,78 @@
+[client]
+default-character-set = utf8mb4
+socket = /var/lib/mysql/mysql.sock
+port = 3306
+
+[mysqld_safe]
+log-error = /var/log/mariadb/mariadb.log
+nice = 0
+socket = /var/lib/mysql/mysql.sock
+
+[mysqld]
+basedir = /usr
+datadir=/var/lib/mysql
+socket=/var/lib/mysql/mysql.sock
+log-error=/var/log/mariadb/mariadb.log
+pid-file=/run/mariadb/mariadb.pid
+bind-address = 0.0.0.0
+port = 3306
+binlog_format = ROW
+bulk_insert_buffer_size = 16M
+character-set-server = utf8mb4
+collation-server = utf8mb4_general_ci
+concurrent_insert = 2
+connect_timeout = 5
+default_storage_engine = InnoDB
+expire_logs_days = 7
+innodb_buffer_pool_size = 1024M
+innodb_buffer_pool_instances = 1
+innodb_flush_log_at_trx_commit = 2
+innodb_log_buffer_size = 32M
+innodb_max_dirty_pages_pct = 90
+innodb_file_per_table = 1
+innodb_open_files = 400
+innodb_io_capacity = 4000
+innodb_flush_method = O_DIRECT
+innodb_large_prefix = true
+innodb_file_format = barracuda
+key_buffer_size = 128M
+long_query_time = 1
+max_allowed_packet = 16M
+max_binlog_size = 100M
+max_connections = 300
+max_heap_table_size = 64M
+myisam_recover_options = BACKUP
+myisam_sort_buffer_size = 512M
+port = 3306
+query_cache_limit = 2M
+query_cache_size = 64M
+query_cache_type = 1
+query_cache_min_res_unit = 2k
+read_buffer_size = 2M
+read_rnd_buffer_size = 1M
+skip-external-locking
+skip-name-resolve
+sort_buffer_size = 4M
+table_open_cache = 400
+thread_cache_size = 128
+tmp_table_size = 64M
+tmpdir = /tmp
+transaction_isolation = READ-COMMITTED
+wait_timeout = 600
+{% if db_master_cluster == true %}
+server-id = {{ inventory_hostname | regex_search('(\\d)') | int + 1 }}
+log_bin = /var/log/mariadb/{{ inventory_hostname }}-bin
+log_bin_index = /var/log/mariadb/{{ inventory_hostname }}-bin.index
+relay_log = /var/log/mariadb/{{ inventory_hostname }}-relay-bin
+relay_log_index = /var/log/mariadb/{{ inventory_hostname }}-relay-bin.index
+binlog_format   = mixed
+binlog_do_db = {{ nextcloud_db }}
+replicate-do-db = {{ nextcloud_db }}
+{% endif %}
+[mysqldump]
+max_allowed_packet = 16M
+quick
+quote-names
+
+[isamchk]
+key_buffer = 16M

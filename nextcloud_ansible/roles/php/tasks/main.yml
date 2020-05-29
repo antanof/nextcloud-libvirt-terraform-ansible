@@ -1,0 +1,17 @@
+---
+- name: Install PHP
+  dnf:
+    name: ['php', 'php-gd', 'php-common', 'php-dom', 'php-zlib', 'php-json', 'php-mbstring', 'php-intl', 'php-pecl-apcu', 'php-mysqlnd', 'php-pecl-redis', 'php-opcache', 'php-imagick', 'php-zip', 'php-process', 'php-pear', 'php-pdo_mysql', 'php-ctype']
+    state: present
+
+- name: PHP Installed Starting
+  service:
+    name: php-fpm
+    state: started
+    enabled: yes
+
+- name: Nextcloud specific php configuration
+  include_role:
+    name: nextcloud
+    tasks_from: nextcloud_php
+...

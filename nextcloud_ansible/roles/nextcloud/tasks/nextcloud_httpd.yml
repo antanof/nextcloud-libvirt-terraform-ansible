@@ -1,0 +1,73 @@
+---
+- name: Create ssl certificates Directory
+  file:
+    dest: "/etc/{{ item }}"
+    owner: root
+    group: root
+    state: directory
+  tags: cert
+  with_items:
+    - "{{ ansible_fqdn }}"
+    - "{{ ansible_fqdn }}/ssl"
+
+- name: Generate an OpenSSL private key
+  openssl_privatekey:
+    path: /etc/{{ ansible_fqdn }}/ssl/{{ ansible_fqdn }}.key
+  tags: cert
+
+- name: Generate an OpenSSL CSR
+  openssl_csr:
+    path: /etc/{{ ansible_fqdn }}/ssl/{{ ansible_fqdn }}.csr
+    privatekey_path: /etc/{{ ansible_fqdn }}/ssl/{{ ansible_fqdn }}.key
+    common_name: "{{ ansible_fqdn }}"
+  tags: cert
+
+- name: Generate a Self Signed OpenSSL certificate
+  openssl_certificate:
+    path: /etc/{{ ansible_fqdn }}/ssl/{{ ansible_fqdn }}.crt
+    privatekey_path: /etc/{{ ansible_fqdn }}/ssl/{{ ansible_fqdn }}.key
+    csr_path: /etc/{{ ansible_fqdn }}/ssl/{{ ansible_fqdn }}.csr
+    provider: selfsigned
+  tags: cert
+
+- name: Test if dhparam pem exists
+  stat: path=/etc/{{ ansible_fqdn }}/ssl/dhparams.pem
+  register: dhparam_stat
+  tags: cert
+
+- name: Generate Diffie-Hellman parameters (2048 bits)
+  openssl_dhparam:
+    path: /etc/{{ ansible_fqdn }}/ssl/dhparams.pem
+    size: 2048 # 4096 warning it's a long time...
+  when: openssl_dhparam | default(false)
+  tags: cert
+  register: dhparam
+
+- name: Import dhparams.pem
+  template:
+    src: dhparams.pem.j2
+    dest: /etc/{{ ansible_fqdn }}/ssl/dhparams.pem
+    owner: root
+    group: root
+    mode: '0600'
+  when: (not dhparam_stat.stat.exists or openssl_dhparam == "false")
+  tags: cert
+
+- name: Create virtualhost
+  template:
+    src: httpd/nextcloud.conf.j2
+    dest: /etc/httpd/conf.d/nextcloud.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: httpd_restart
+
+- name: Change apache configuration
+  template:
+    src: httpd/httpd.conf.j2
+    dest: /etc/httpd/conf/httpd.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: httpd_restart
+...

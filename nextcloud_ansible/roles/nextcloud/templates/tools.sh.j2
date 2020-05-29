@@ -1,0 +1,31 @@
+#!/bin/bash
+upgrade()
+{
+      systemctl stop {{ webserver.name | default(httpd) }}
+      setsebool httpd_unified on
+      su - {{ webserver.user | default(apache) }} -s /bin/bash -c 'php /var/www/html/nextcloud/updater/updater.phar'
+      su - {{ webserver.user | default(apache) }} -s /bin/bash -c 'php /var/www/html/nextcloud/occ status'
+      su - {{ webserver.user | default(apache) }} -s /bin/bash -c 'php /var/www/html/nextcloud/occ -V'
+      su - {{ webserver.user | default(apache) }} -s /bin/bash -c 'php /var/www/html/nextcloud/occ db:add-missing-indices'
+      su - {{ webserver.user | default(apache) }} -s /bin/bash -c 'php /var/www/html/nextcloud/occ db:convert-filecache-bigint'
+      sed -i "s/output_buffering=.*/output_buffering='Off'/" /var/www/html/nextcloud/.user.ini
+      chown -R {{ webserver.user | default(apache) }}:{{ webserver.user | default(apache) }} /var/www/html/nextcloud
+      su - {{ webserver.user | default(apache) }} -s /bin/bash -c 'php /var/www/html/nextcloud/occ update:check'
+      su - {{ webserver.user | default(apache) }} -s /bin/bash -c 'php /var/www/html/nextcloud/occ app:update --all'
+      setsebool -P  httpd_unified  off
+      systemctl restart php-fpm
+      systemctl start {{ webserver.name | default(httpd) }}
+}
+
+convertdb()
+{
+      systemctl stop {{ webserver.name | default(httpd) }}
+      su - {{ webserver.user | default(apache) }} -s /bin/bash -c 'php /var/www/html/nextcloud/occ db:add-missing-indices'
+      su - {{ webserver.user | default(apache) }} -s /bin/bash -c 'php /var/www/html/nextcloud/occ db:convert-filecache-bigint'
+      systemctl restart php-fpm
+      systemctl start {{ webserver.name | default(httpd) }}
+}
+
+$1
+
+exit 0

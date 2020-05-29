@@ -1,0 +1,239 @@
+---
+- name: Configure FIPS
+  include_tasks: fips.yml
+  tags: fips
+  when: fips | bool
+
+- name: Test if nextcloud config exists
+  stat: path=/var/www/html/nextcloud/config/config.php
+  register: nc_config_stat
+  tags: [install, nc_download]
+
+- name: Extract installer
+  unarchive:
+    src: "{{ nextcloud_bin_url }}"
+    dest: /var/www/html/
+    remote_src: True
+    owner: "{{ webserver.user | default(apache) }}"
+    group: "{{ webserver.user | default(apache) }}"
+  when: not nc_config_stat.stat.exists
+  tags: nc_download
+
+- name: Create Data Directory with permissions
+  file:
+    dest: "/var/nc_data"
+    owner: "{{ webserver.user | default(apache) }}"
+    group: "{{ webserver.user | default(apache) }}"
+    mode: '0775'
+    state: directory
+  changed_when: false
+
+- name: SELinux allow apache to modify files in differents directories
+  sefcontext:
+    target: "{{ item }}"
+    setype: httpd_sys_rw_content_t
+    state: present
+  with_items:
+    - '/var/www/html/nextcloud/config(/.*)?'
+    - '/var/nc_data(/.*)?'
+    - '/var/www/html/nextcloud/data(/.*)?'
+    - '/var/www/html/nextcloud/apps(/.*)?'
+    - '/var/www/nextcloud/assets(/.*)?'
+    - '/var/www/html/nextcloud/.htaccess'
+    - '/var/www/html/nextcloud/.user.ini'
+    - '/var/www/html/nextcloud/3rdparty/aws/aws-sdk-php/src/data/logs(/.*)?'
+  tags: selinux
+
+- name: Set httpd_can_network_connect flag on and keep it persistent across reboots
+  seboolean:
+    name: "{{ item }}"
+    state: yes
+    persistent: yes
+  with_items:
+    - httpd_can_network_connect
+    - httpd_can_network_connect_db
+    - httpd_can_network_relay
+    - httpd_unified
+    - httpd_graceful_shutdown
+    - httpd_can_sendmail
+    - httpd_use_cifs
+    - httpd_use_fusefs
+    - httpd_use_gpg
+    - httpd_execmem
+  tags: selinux
+
+- name: Configure httpd and selinux
+  shell: |
+    restorecon -Rv "{{ item }}"
+  with_items: ["/var/nc_data", "/var/www/html/nextcloud"]
+
+# if you have trouble with php-fpm and selinux in this nextcloud configuration :
+# # ausearch -c 'php-fpm' --raw | audit2allow -M my-phpfpm
+# # semodule -X 300 -i my-phpfpm.pp
+# # ausearch -c 'df' --raw | audit2allow -M my-df
+# # semodule -X 300 -i my-df.pp
+
+- name: Put SELinux in enforcing mode
+  selinux:
+    policy: targeted
+    state: "{{ selinux_state | default(enforcing) }}"
+  notify: reboot
+  tags: selinux
+
+- name: Add a php cron task for {{ webserver.user }}
+  cron:
+    name: "php nextcloud tasks"
+    minute: "*/5"
+    job: "php -f /var/www/html/nextcloud/cron.php > /dev/null 2>&1"
+    user: "{{ webserver.user | default(apache) }}"
+  tags: cron
+
+- name: Nextcloud silent installation
+  shell: |
+      sudo -u "{{ webserver.user | default(apache) }}" php occ maintenance:install --database="mysql" --database-name="{{ nextcloud_db }}" --database-host="{{ hostvars[groups['lan_db'][0]]['ansible_host'] }}" --database-user="{{ nextcloud_db_user }}" --database-pass="{{ nextcloud_db_password }}" --database-table-prefix="" --admin-user="{{ nextcloud_admin_user }}" --admin-pass="{{ nextcloud_admin_password }}" --data-dir "/var/nc_data"
+      sudo -u "{{ webserver.user | default(apache) }}" php occ config:system:set trusted_domains 1 --value="{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}"
+      sudo -u "{{ webserver.user | default(apache) }}" php occ config:system:set trusted_domains 2 --value="{{ nextcloud_gateway }}"
+      sudo -u "{{ webserver.user | default(apache) }}" php occ config:system:set overwrite.cli.url --value=https://"{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}"
+      sudo -u "{{ webserver.user | default(apache) }}" php occ background:cron
+      sudo -u "{{ webserver.user | default(apache) }}" php occ app:disable firstrunwizard
+      sudo -u "{{ webserver.user | default(apache) }}" php occ app:disable survey_client
+      sudo -u "{{ webserver.user | default(apache) }}" php occ app:install files_external
+      sudo -u "{{ webserver.user | default(apache) }}" php occ app:enable files_external
+      systemctl stop "{{ webserver.name | default(httpd) }}"
+      sudo -u "{{ webserver.user | default(apache) }}" php occ db:add-missing-indices
+      systemctl start "{{ webserver.name | default(httpd) }}"
+  args:
+    chdir: /var/www/html/nextcloud/
+  tags: install
+  when: not nc_config_stat.stat.exists
+
+- name: Change conf in .htaccess file
+  notify: [ "{{ webserver.name | default(httpd) }}_restart", php_restart ]
+  tags: htaccess
+  blockinfile:
+    path: /var/www/html/nextcloud/.htaccess
+    marker: "# {mark} ANSIBLE MANAGED BLOCK"
+    block: |
+          <IfModule mod_rewrite.c>
+          Options -MultiViews
+          RewriteRule ^core/js/oc.js$ index.php [PT,E=PATH_INFO:$1]
+          RewriteRule ^core/preview.png$ index.php [PT,E=PATH_INFO:$1]
+          RewriteCond %{REQUEST_FILENAME} !\.(css|js|svg|gif|png|html|ttf|woff2?|ico|jpg|jpeg)$
+          RewriteCond %{REQUEST_FILENAME} !core/img/favicon.ico$
+          RewriteCond %{REQUEST_FILENAME} !core/img/manifest.json$
+          RewriteCond %{REQUEST_FILENAME} !/remote.php
+          RewriteCond %{REQUEST_FILENAME} !/public.php
+          RewriteCond %{REQUEST_FILENAME} !/cron.php
+          RewriteCond %{REQUEST_FILENAME} !/core/ajax/update.php
+          RewriteCond %{REQUEST_FILENAME} !/status.php
+          RewriteCond %{REQUEST_FILENAME} !/ocs/v1.php
+          RewriteCond %{REQUEST_FILENAME} !/ocs/v2.php
+          RewriteCond %{REQUEST_FILENAME} !/robots.txt
+          RewriteCond %{REQUEST_FILENAME} !/updater/
+          RewriteCond %{REQUEST_FILENAME} !/ocs-provider/
+          RewriteCond %{REQUEST_URI} !^/\.well-known/(acme-challenge|pki-validation)/.*
+          RewriteRule . index.php [PT,E=PATH_INFO:$1]
+          RewriteBase /
+          <IfModule mod_env.c>
+          SetEnv front_controller_active true
+          <IfModule mod_dir.c>
+          DirectorySlash off
+          </IfModule>
+          </IfModule>
+          </IfModule>
+
+- name: Adapt nextcloud configuration
+  blockinfile:
+    path: /var/www/html/nextcloud/config/config.php
+    marker: "// {mark} ANSIBLE MANAGED BLOCK"
+    insertbefore: \);$
+    block: |
+        'activity_expire_days' => 14,
+        'auth.bruteforce.protection.enabled' => true,
+        'blacklisted_files' =>
+        array (
+        0 => '.htaccess',
+        1 => 'Thumbs.db',
+        2 => 'thumbs.db',
+        ),
+        'cron_log' => true,
+        'enable_previews' => true,
+        'enabledPreviewProviders' =>
+        array (
+        0 => 'OC\\Preview\\PNG',
+        1 => 'OC\\Preview\\JPEG',
+        2 => 'OC\\Preview\\GIF',
+        3 => 'OC\\Preview\\BMP',
+        4 => 'OC\\Preview\\XBitmap',
+        5 => 'OC\\Preview\\Movie',
+        6 => 'OC\\Preview\\PDF',
+        7 => 'OC\\Preview\\MP3',
+        8 => 'OC\\Preview\\TXT',
+        9 => 'OC\\Preview\\MarkDown',
+        ),
+        'filesystem_check_changes' => 0,
+        'filelocking.enabled' => 'true',
+        'htaccess.RewriteBase' => '/',
+        'integrity.check.disabled' => false,
+        'knowledgebaseenabled' => false,
+        'logfile' => '/var/nc_data/nextcloud.log',
+        'loglevel' => 2,
+        'logtimezone' => 'Europe/Paris',
+        'log_rotate_size' => 104857600,
+        'maintenance' => false,
+        'memcache.local' => '\\OC\\Memcache\\APCu',
+        'memcache.locking' => '\\OC\\Memcache\\Redis',
+        'overwriteprotocol' => 'https',
+        'preview_max_x' => 1024,
+        'preview_max_y' => 768,
+        'preview_max_scale_factor' => 1,
+        'redis' =>
+        array (
+        'host' => '{{ hostvars[groups['lan_rd'][0]]['ansible_host'] }}',
+        'port' => 6379,
+        'dbindex' => 0,
+        'timeout' => 1.5,
+        ),
+        'quota_include_external_storage' => false,
+        'share_folder' => '/Shares',
+        'skeletondirectory' => '',
+        'theme' => '',
+        'trashbin_retention_obligation' => 'auto, 7',
+        'updater.release.channel' => 'stable',
+  notify: [ "{{ webserver.name | default(httpd) }}_restart", php_restart ]
+  tags: conf2
+
+- name: adjust .user.ini
+  replace:
+    path: /var/www/html/nextcloud/.user.ini
+    regexp: '{{ item.regexp }}'
+    replace: '{{ item.replace }}'
+    backup: yes
+  with_items:
+    - { regexp: "output_buffering=.*", replace: "output_buffering='Off'" }
+  notify: [ "{{ webserver.name | default(httpd) }}_restart", php_restart ]
+  tags: conf2
+
+- name: Tools script
+  template:
+    src: tools.sh.j2
+    dest: /root/tools.sh
+    owner: root
+    group: root
+    mode: '0755'
+  tags: convertdb
+
+- name: Run tools script to convert DataBase
+  shell: yes | /root/tools.sh convertdb
+  args:
+    chdir: /var/www/html/nextcloud/
+  tags: convertdb
+
+- debug:
+    msg: "{{ item }}"
+  with_items:
+    - "DataBase cluster's IP: {{ hostvars[groups['lan_db'][0]]['ansible_host'] + ' ' + hostvars[groups['lan_db'][1]]['ansible_host'] }}"
+    - "Redis cluster's IPs: {{ hostvars[groups['lan_rd'][0]]['ansible_host'] + ' ' + hostvars[groups['lan_rd'][1]]['ansible_host'] }}"
+    - "Nextcloud server's IP: {{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}"
+  tags: ip
+...

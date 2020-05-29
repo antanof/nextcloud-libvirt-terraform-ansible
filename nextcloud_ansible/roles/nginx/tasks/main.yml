@@ -1,0 +1,16 @@
+---
+- name: Install nginx package
+  dnf:
+    name: nginx
+    state: latest
+
+- name: Web Server Installed Starting
+  service:
+    name: nginx
+    state: started
+    enabled: yes
+
+- name: Nginx Configuration for Nextcloud
+  include_role:
+    name: nextcloud
+    tasks_from: "nextcloud_nginx.yml"

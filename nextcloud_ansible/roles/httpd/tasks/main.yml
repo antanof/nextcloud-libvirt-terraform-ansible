@@ -1,0 +1,17 @@
+---
+- name: Installing Web Server
+  dnf:
+    name: [httpd, mod_ssl, openssl]
+    state: latest
+
+- name: Web Server Installed Starting
+  service:
+    name: httpd
+    state: started
+    enabled: yes
+
+- name: httpd Configuration for Nextcloud
+  include_role:
+    name: nextcloud
+    tasks_from: "nextcloud_httpd.yml"
+...

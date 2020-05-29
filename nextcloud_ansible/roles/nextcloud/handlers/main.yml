@@ -1,0 +1,16 @@
+---
+- name: reboot
+  reboot:
+    reboot_timeout: 60
+- name: httpd_restart
+  service:
+    name: httpd
+    state: restarted
+- name: php_restart
+  service:
+    name: php-fpm
+    state: restarted
+- name: nginx_restart
+  service:
+    name: nginx
+    state: restarted

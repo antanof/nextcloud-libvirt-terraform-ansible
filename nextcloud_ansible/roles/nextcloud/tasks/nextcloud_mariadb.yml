@@ -1,0 +1,27 @@
+---
+- name: Create NextCloud database
+  mysql_db:
+    name: "{{ nextcloud_db }}"
+    encoding: utf8mb4
+    collation: utf8mb4_general_ci
+    state: present
+
+- name: Create NextCloud database user on localhost
+  mysql_user:
+    name: "{{ nextcloud_db_user }}"
+    password: "{{ nextcloud_db_password }}"
+    priv: "nextcloud.*:ALL,GRANT"
+    host: "localhost"
+    login_unix_socket: "/var/lib/mysql/mysql.sock"
+    state: present
+
+- name: Create NextCloud database user on all hosts
+  mysql_user:
+    name: "{{ nextcloud_db_user }}"
+    password: "{{ nextcloud_db_password }}"
+    priv: "nextcloud.*:ALL,GRANT"
+    host: "%"
+    state: present
+    login_unix_socket: "/var/lib/mysql/mysql.sock"
+  notify: restart_mariadb
+...

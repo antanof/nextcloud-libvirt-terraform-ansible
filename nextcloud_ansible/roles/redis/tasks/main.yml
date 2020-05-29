@@ -1,0 +1,54 @@
+---
+- name: Install Redis
+  dnf:
+    name: ['redis']
+    state: present
+
+- name: Redis Installed Starting
+  service:
+    name: redis
+    state: started
+    enabled: yes
+
+- name: Change Redis configuration
+  template:
+    src: redis.conf.j2
+    dest: /etc/redis.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: restart_redis
+
+- name: Checking overcommit memory
+  shell: 'cat /proc/sys/vm/overcommit_memory'
+  register: overcommit_memory
+  changed_when: false
+  failed_when: false
+
+- name: Overcommit memory
+  sysctl:
+    name: vm.overcommit_memory
+    value: '1'
+    state: present
+  when: '"1" not in overcommit_memory.stdout'
+  tags: cf
+
+- name: Increase max connections
+  sysctl:
+    name: net.core.somaxconn
+    value: '511'
+    state: present
+  tags: cf
+
+#cat /sys/kernel/mm/transparent_hugepage/enabled | egrep -o '\[.*\]'
+- name: Disable THP
+  shell: echo never > /sys/kernel/mm/transparent_hugepage/enabled
+  notify: restart_redis
+  tags: cf
+
+#- name: Disable Transparent Huge Page
+#  lineinfile:
+#    path: /etc/sysfs.conf
+#    line: kernel/mm/transparent_hugepage/enabled = never
+#  tags: cf
+...

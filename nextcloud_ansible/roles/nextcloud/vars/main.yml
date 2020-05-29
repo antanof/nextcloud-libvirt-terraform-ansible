@@ -1,0 +1,9 @@
+nextcloud_bin_url: "https://download.nextcloud.com/server/releases/latest.tar.bz2"
+nextcloud_db: "nextcloud"
+nextcloud_db_password: "passd234"
+nextcloud_db_user: "ncuser"
+nextcloud_admin_user: "admin"
+nextcloud_admin_password: "passd234"
+nextcloud_gateway: "192.168.1.254"
+fips: false
+selinux_state: "enforcing"

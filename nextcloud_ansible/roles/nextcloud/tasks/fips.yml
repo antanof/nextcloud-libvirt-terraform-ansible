@@ -1,0 +1,38 @@
+---
+- name: Install tools
+  dnf:
+    name: ['dracut-fips', 'dracut-fips-aesni']
+    state: latest
+  tags: fips
+
+- name: Checking GRUB cmdline
+  shell: 'grep "fips=1" /etc/default/grub'
+  register: grub_cfg_grep
+  changed_when: false
+  failed_when: false
+  tags: fips
+
+- name: Recreate initramfs file
+  command: dracut -f
+  when: '"fips=1" not in grub_cfg_grep.stdout'
+  tags: fips
+
+- name: Find uuid of /boot
+  command: findmnt -no uuid /
+  register: boot_uuid
+  when: '"fips=1" not in grub_cfg_grep.stdout'
+  tags: fips
+
+- name: Configuring GRUB cmdline
+  replace:
+    path: '/etc/default/grub'
+    regexp: '^GRUB_CMDLINE_LINUX="((\w.?)*)"$'
+    replace: 'GRUB_CMDLINE_LINUX="\1 boot=UUID={{ boot_uuid.stdout }} fips=1"'
+  when: '"fips=1" not in grub_cfg_grep.stdout'
+  tags: fips
+
+- name: Reconfigure grub
+  command: grub2-mkconfig -o /boot/grub2/grub.cfg
+  when: '"fips=1" not in grub_cfg_grep.stdout'
+  tags: fips
+  notify: reboot
