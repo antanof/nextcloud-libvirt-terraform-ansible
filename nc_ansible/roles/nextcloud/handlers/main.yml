@@ -14,3 +14,11 @@
   service:
     name: nginx
     state: restarted
+- name: change_libphp_owner
+  file:
+    path: "/var/lib/php/"
+    state: directory
+    owner: nginx
+    group: nginx
+    recurse: yes
+  when: webserver.name == "nginx"

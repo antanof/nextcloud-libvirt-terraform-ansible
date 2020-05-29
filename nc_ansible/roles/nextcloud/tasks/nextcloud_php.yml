@@ -6,7 +6,7 @@
     owner: root
     group: root
     mode: '0644'
-  notify: php_restart
+  notify: [php_restart, change_libphp_owner]
 
 - name: Change PHP opcache conf
   template:
