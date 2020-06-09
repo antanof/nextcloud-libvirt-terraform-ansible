@@ -2,8 +2,14 @@
 
 
 ## Requirement
-Works with Fedora Server cloud image.
-This code deploys 2 Mariadb Master / Slave servers, 2 Redis Master / Slave servers, GlusterFS Cluster, Haproxy load-balancer and two Nextcloud servers with Nginx or Apache with php-fpm.
+Works with [Fedora Server cloud image](https://alt.fedoraproject.org/cloud/).
+This code deploys :
+- 2 Mariadb Master / Slave servers,
+- 2 Redis Master / Slave servers,
+- 2 vms in GlusterFS Cluster,
+- Haproxy load-balancer,
+- 2 Nextcloud servers with Nginx or Apache with php-fpm.
+
 You must have installed [Terraform](https://www.terraform.io/), [Libvirt provider](https://github.com/dmacvicar/terraform-provider-libvirt) and [Ansible](https://www.ansible.com/).
 
 ## Copy
