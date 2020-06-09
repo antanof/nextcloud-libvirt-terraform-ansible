@@ -4,7 +4,7 @@ global
   pidfile     /var/run/haproxy.pid
   user haproxy
   group haproxy
-  maxconn 50000
+  maxconn 5000
   nbproc          2
   cpu-map         1 0
   cpu-map         2 1
@@ -63,8 +63,8 @@ backend bk_http
   default-server inter 1s
   timeout connect         10s
   timeout server          1m
-  server fed-nc-0.lan {{ hostvars[groups['lan_nc'][0]]['ansible_host'] }}:80 check id 1
-  server fed-nc-1.lan {{ hostvars[groups['lan_nc'][1]]['ansible_host'] }}:80 check id 2
+  server fed-nc-0.lan {{ hostvars[groups['lan_nc'][0]]['ansible_host'] }}:80 maxconn 250 check id 1
+  server fed-nc-1.lan {{ hostvars[groups['lan_nc'][1]]['ansible_host'] }}:80 maxconn 250 check id 2
 backend bk_https
   mode tcp
   balance static-rr
@@ -72,5 +72,5 @@ backend bk_https
   default-server inter 1s
   timeout connect         10s
   timeout server          1m
-  server fed-nc-0.lan {{ hostvars[groups['lan_nc'][0]]['ansible_host'] }}:443 check id 1
-  server fed-nc-1.lan {{ hostvars[groups['lan_nc'][1]]['ansible_host'] }}:443 check id 2
+  server fed-nc-0.lan {{ hostvars[groups['lan_nc'][0]]['ansible_host'] }}:443 maxconn 250 check id 1
+  server fed-nc-1.lan {{ hostvars[groups['lan_nc'][1]]['ansible_host'] }}:443 maxconn 250 check id 2
