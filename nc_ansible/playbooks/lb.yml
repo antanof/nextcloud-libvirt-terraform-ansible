@@ -1,0 +1,10 @@
+---
+- name: Install Loadbalancer Server
+  hosts: lan_lb
+  become: true
+  vars:
+    list_open_services: ["http", "https"]
+  roles:
+    - role: firewalld
+    - role: loadbalancer
+...

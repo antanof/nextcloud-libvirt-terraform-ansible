@@ -6,8 +6,8 @@
     list_open_services: ["http", "https"]
     openssl_dhparam:
     webserver:
-      name: "nginx" # httpd
-      user: "nginx" # apache
+      name: "nginx" # or httpd
+      user: "nginx" # or apache, group's name is the same
       php_socket: "/run/php-fpm/php-fpm.sock"
     #      php_socket: "/run/php-fpm/www.sock"
   roles:

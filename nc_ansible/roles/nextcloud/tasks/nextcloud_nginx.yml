@@ -68,14 +68,13 @@
     owner: nginx
     group: nginx
     mode: '0750'
-  with_items: ["www", "www/html"]
+  with_items: ["www", "www/html", "nc_data"]
   changed_when: false
 
-- name: Check /var/lib/php directory owner
-  file:
-    path: "/var/lib/php/"
-    state: directory
-    owner: nginx
-    group: nginx
-  changed_when: false
+- name: Install glusterFS client
+  dnf:
+    name: glusterfs-fuse
+    state: latest
+# Mount GlusterFS Storage for Nextcloud data
+- include: nextcloud_storage.yml
 ...

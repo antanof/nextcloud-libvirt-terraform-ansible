@@ -62,9 +62,6 @@ for_each = local.servers
     network_name   = var.net
     wait_for_lease = true
   }
-#  cpu = {
-#    mode = "host-passthrough"
-#  }
 
   disk {
     volume_id = libvirt_volume.server-os[each.key].id

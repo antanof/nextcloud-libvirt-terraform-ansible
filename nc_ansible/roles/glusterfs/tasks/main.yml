@@ -1,0 +1,60 @@
+- command: "{{ item }}"
+  with_items:
+    - "setsebool -P virt_sandbox_use_fusefs on"
+    - "setsebool -P virt_use_fusefs on"
+
+- name: Install glusterfs first_packages
+  dnf:
+    name: glusterfs-server
+    state: latest
+#- pause:
+#      prompt: |
+#        Verify with: rpm -q glusterfs-server
+
+- name: GlusterFS Installed Starting
+  service:
+    name: glusterd
+    state: started
+    enabled: yes
+### Configuration
+- name: Create gluster share directory
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0750'
+  with_items: ["/mnt/data", "/nextcloud"]
+  changed_when: false
+
+- name: Create gluster 1
+  gluster_volume:
+    state: present
+    force: yes
+    name: ncgluster1
+    bricks: /mnt/data/g1
+#    rebalance: yes
+    host: "{{ inventory_hostname }}"
+    replicas: 2
+    cluster:
+      - "{{ hostvars[groups['lan_gl'][0]]['ansible_host'] }}"
+      - "{{ hostvars[groups['lan_gl'][1]]['ansible_host'] }}"
+  run_once: true
+
+- name: Create gluster 2
+  gluster_volume:
+    state: present
+    force: yes
+    name: ncgluster2
+    bricks: /nextcloud/g1
+    host: "{{ inventory_hostname }}"
+    replicas: 2
+    cluster:
+      - "{{ hostvars[groups['lan_gl'][0]]['ansible_host'] }}"
+      - "{{ hostvars[groups['lan_gl'][1]]['ansible_host'] }}"
+  run_once: true
+
+#- name: start gluster volume
+#  gluster_volume:
+#    state: started
+#    name: ncgluster

@@ -52,13 +52,6 @@ resource "libvirt_volume" "server-os" {
   format   = "qcow2"
 }
 
-resource "libvirt_volume" "data_disk" {
-  name           = "data-disk-${var.machine_name}-xfs"
-  pool           = "default"
-  size           = var.diskBytes
-  format         = "qcow2"
-}
-
 resource "libvirt_domain" "nextcloud_vms" {
 for_each = local.servers
   name       = each.key
@@ -75,13 +68,6 @@ for_each = local.servers
 
   disk {
     volume_id = libvirt_volume.server-os[each.key].id
-  }
-  dynamic "disk" {
-    for_each = each.value["dd"] ? [libvirt_volume.data_disk.*.id] : []
-    content {
-#        volume_id = "${each.key}-disk-${disk.key}"
-        volume_id = "/var/lib/libvirt/images/data-disk-${var.machine_name}-xfs"
-    }
   }
 
   cloudinit = libvirt_cloudinit_disk.commoninit[each.key].id

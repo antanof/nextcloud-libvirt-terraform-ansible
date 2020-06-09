@@ -15,6 +15,9 @@
   roles:
     - role: common
 
+- name: Include GlusterFS play
+  import_playbook: gl.yml
+
 - name: Include Redis play
   import_playbook: rd.yml
 
@@ -23,4 +26,8 @@
 
 - name: Include Nextcloud play
   import_playbook: nc.yml
+
+- name: Include LoadBalancer play
+  import_playbook: lb.yml
+  tags: loadbalancer
 ...

@@ -1,0 +1,31 @@
+---
+- name: Install haproxy
+  dnf:
+    name: haproxy
+    state: present
+
+- name: haproxy Installed Starting
+  service:
+    name: haproxy
+    state: started
+    enabled: yes
+
+- name: haproxy configuration
+  template:
+    src: haproxy.cfg.j2
+    dest: /etc/haproxy/haproxy.cfg
+    owner: root
+    group: root
+    mode: '0644'
+  notify: haproxy_restart
+
+- debug: "{{ item }}"
+  run_once: true
+  with_items:
+#    - "GlusterFS cluster's IP: {{ groups.lan_gl['ansible_host'] }}"
+    - "GlusterFS cluster's IP: {{ hostvars[groups['lan_gl'][0]]['ansible_host'] + ' ' + hostvars[groups['lan_gl'][1]]['ansible_host'] }}"
+    - "DataBase cluster's IP: {{ hostvars[groups['lan_db'][0]]['ansible_host'] + ' ' + hostvars[groups['lan_db'][1]]['ansible_host'] }}"
+    - "Redis cluster's IPs: {{ hostvars[groups['lan_rd'][0]]['ansible_host'] + ' ' + hostvars[groups['lan_rd'][1]]['ansible_host'] }}"
+    - "Nextcloud cluster's IP: {{ hostvars[groups['lan_nc'][0]]['ansible_host'] + ' ' + hostvars[groups['lan_nc'][1]]['ansible_host'] }}"
+    - "LoadBalancer's IP: {{ hostvars[groups['lan_lb'][0]]['ansible_host'] }}"
+  tags: ip

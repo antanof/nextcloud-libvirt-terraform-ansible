@@ -1,0 +1,76 @@
+global
+  log 127.0.0.1 local2
+  chroot      /var/lib/haproxy
+  pidfile     /var/run/haproxy.pid
+  user haproxy
+  group haproxy
+  maxconn 50000
+  nbproc          2
+  cpu-map         1 0
+  cpu-map         2 1
+  daemon
+  ssl-default-bind-ciphers PROFILE=SYSTEM
+  ssl-default-server-ciphers PROFILE=SYSTEM
+  stats socket /var/lib/haproxy/stats mode 660 level admin
+
+listen stats
+  bind :9000
+  mode http
+  stats enable
+  stats hide-version
+  stats show-node
+  stats realm Haproxy\ Statistics
+  stats uri /haproxy_stats
+  stats auth admin:admin  # Authentication credentials
+  timeout connect         86400
+  timeout client          86400
+  timeout server          86400
+
+defaults
+    mode                    tcp
+    log                     global
+    option                  tcplog
+    option                  dontlognull
+    option http-server-close
+    option forwardfor       except 127.0.0.0/8
+    option                  redispatch
+    retries                 3
+    timeout http-request    10
+    timeout queue           1m
+    timeout connect         1m
+    timeout client          1m
+    timeout server          1m
+    timeout http-keep-alive 10
+    timeout check           10
+
+frontend ft_http
+  bind *:80
+  mode http
+  timeout client          1m
+  default_backend bk_http
+
+frontend ft_https
+  bind *:443
+  mode tcp
+  timeout client          1m
+  http-request set-header X-Forwarded-Proto: https
+  default_backend bk_https
+
+
+backend bk_http
+  mode http
+  balance static-rr
+  default-server inter 1s
+  timeout connect         10s
+  timeout server          1m
+  server fed-nc-0.lan {{ hostvars[groups['lan_nc'][0]]['ansible_host'] }}:80 check id 1
+  server fed-nc-1.lan {{ hostvars[groups['lan_nc'][1]]['ansible_host'] }}:80 check id 2
+backend bk_https
+  mode tcp
+  balance static-rr
+  option ssl-hello-chk
+  default-server inter 1s
+  timeout connect         10s
+  timeout server          1m
+  server fed-nc-0.lan {{ hostvars[groups['lan_nc'][0]]['ansible_host'] }}:443 check id 1
+  server fed-nc-1.lan {{ hostvars[groups['lan_nc'][1]]['ansible_host'] }}:443 check id 2

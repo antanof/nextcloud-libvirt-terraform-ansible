@@ -1,0 +1,12 @@
+---
+- name: Install GlusterFS Server
+  hosts: lan_gl
+  become: true
+  vars:
+#    list_open_services: ["glusterfs"]
+    list_open_services: ["nfs", "samba", "samba-client"]
+    list_open_ports: ["111/tcp", "139/tcp", "445/tcp", "965/tcp", "2049/tcp", "38465-38469/tcp", "631/tcp", "24007-24008/tcp", "24009/tcp", "111/udp", "963/udp", "49152-49251/tcp" ]
+  roles:
+    - role: firewalld
+    - role: glusterfs
+...

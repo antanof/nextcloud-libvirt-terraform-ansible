@@ -1,0 +1,37 @@
+- mount:
+    src: "{{ hostvars[groups['lan_gl'][0]]['ansible_host'] }}:ncgluster1"
+    path: /var/nc_data
+    fstype: glusterfs
+    opts: acl
+    state: mounted
+- acl:
+    path: /var/nc_data
+    entry: "user:{{ webserver.user | default(httpd) }}:rwX"
+    state: present
+- acl:
+    path: /var/nc_data
+    entry: "default:user:{{ webserver.user | default(httpd) }}:rwX"
+    state: present
+- file:
+    owner: "{{ webserver.user | default(httpd) }}"
+    group: "{{ webserver.user | default(httpd) }}"
+    path: /var/nc_data
+
+- mount:
+    src: "{{ hostvars[groups['lan_gl'][0]]['ansible_host'] }}:ncgluster2"
+    path: /var/www/html
+    fstype: glusterfs
+    opts: acl
+    state: mounted
+- acl:
+    path: /var/www/html
+    entry: "user:{{ webserver.user | default(httpd) }}:rwX"
+    state: present
+- acl:
+    path: /var/www/html
+    entry: "default:user:{{ webserver.user | default(httpd) }}:rwX"
+    state: present
+- file:
+    owner: "{{ webserver.user | default(httpd) }}"
+    group: "{{ webserver.user | default(httpd) }}"
+    path: /var/www/html

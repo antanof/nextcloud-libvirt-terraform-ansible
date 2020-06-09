@@ -3,8 +3,9 @@
   hosts: lan_db
   become: true
   roles:
-    - role: mariadb
     - role: firewalld
       vars:
         list_open_services: ["mysql"]
+    - role: mariadb
+
 ...

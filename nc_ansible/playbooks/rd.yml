@@ -3,8 +3,9 @@
   hosts: lan_rd
   become: true
   vars:
-    list_open_ports: ["6379", "16379"]
+    list_open_ports: ["6379/tcp", "16379/tcp"]
   roles:
-    - role: redis
     - role: firewalld
+    - role: redis
+
 ...

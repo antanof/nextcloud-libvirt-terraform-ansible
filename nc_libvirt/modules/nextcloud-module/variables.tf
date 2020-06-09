@@ -16,7 +16,7 @@ variable "user" {
 }
 variable "ssh_key_path" {
   type = string
-  default = "/home/matt/.ssh/id_rsa"
+  default = "~/.ssh/id_rsa"
 }
 variable "ssh_public_key" {
 }
@@ -35,7 +35,7 @@ variable "memoryMB" {
 }
 variable "cpu" {
   type = number
-  default = 4
+  default = 2
 }
 variable "rootdiskBytes" {
   type = number
