@@ -1,8 +1,6 @@
 # nextcloud-libvirt-terraform-ansible
 
-
-## Requirement
-Works with [Fedora Server cloud image](https://alt.fedoraproject.org/cloud/).
+## Presentation
 This code deploys :
 - 2 Mariadb Master / Slave servers,
 - 2 Redis Master / Slave servers,
@@ -10,9 +8,12 @@ This code deploys :
 - Haproxy load-balancer,
 - 2 Nextcloud servers with Nginx or Apache with php-fpm.
 
+## Requirement
+Works with [Fedora Server cloud image](https://alt.fedoraproject.org/cloud/).
+
 You must have installed [Terraform](https://www.terraform.io/), [Libvirt provider](https://github.com/dmacvicar/terraform-provider-libvirt) and [Ansible](https://www.ansible.com/).
 
-## Copy
+## Copy / Installation
 You must copy the repo and separate the Terraform part from the Ansible part.
 Adapt the variables :
 - variables.tf (terraform)
