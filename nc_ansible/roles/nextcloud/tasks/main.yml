@@ -81,7 +81,7 @@
 - name: Put SELinux in enforcing mode
   selinux:
     policy: targeted
-    state: "{{ selinux_state | default(permissive) }}"
+    state: "{{ selinux_state | default(enforcing) }}"
   notify: reboot
   tags: selinux
 
