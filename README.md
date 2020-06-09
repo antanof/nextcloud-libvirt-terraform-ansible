@@ -20,3 +20,4 @@ Adapt the variables :
 
 ## Virtual Infrastructure visualization
 ![Terraform Graph](https://github.com/antanof/nextcloud-libvirt-terraform-ansible/blob/master/graph.png)
+![Schema](https://github.com/antanof/nextcloud-libvirt-terraform-ansible/blob/master/schema.png)
