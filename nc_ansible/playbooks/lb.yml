@@ -4,6 +4,7 @@
   become: true
   vars:
     list_open_services: ["http", "https"]
+    list_open_ports: ["9000"]
   roles:
     - role: firewalld
     - role: loadbalancer
