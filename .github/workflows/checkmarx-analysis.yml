@@ -15,7 +15,7 @@ jobs:
   # This workflow contains a single job called "build"
   build:
     # The type of runner that the job will run on - Ubuntu is required as Docker is leveraged for the action
-    runs-on: fedora-latest
+    runs-on: ubuntu-latest
 
     # Steps require - checkout code, run CxFlow Action, Upload SARIF report (optional)
     steps:
